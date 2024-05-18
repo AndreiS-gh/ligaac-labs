@@ -64,7 +64,7 @@ Before you begin, ensure you have the following ready:
 
 1. **Prepare Configuration**: Copy `providers.tf`, `variables.tf`, and `terraform.tfvars.json` files into the new root folder.
 
-2. **Create `backend.tf` File**: This file points to your S3 bucket for state storage(change with your username).
+2. **Create `backend.tf` File**: This file points to your S3 bucket for state storage.
 
     ```hcl
     terraform {
@@ -78,9 +78,48 @@ Before you begin, ensure you have the following ready:
 
 3. **Create and Configure `main.tf` File**:
 
-    - Add a data block for available zones.
-    - Define locals for VPC name and tags.
-    - Add the VPC module block as shown in the initial message.
+    - **Add a data block for available zones**:
+
+        ```hcl
+        data "aws_availability_zones" "available" {
+          state = "available"
+        }
+        ```
+
+    - **Define locals for VPC name and tags**:
+
+        ```hcl
+        locals {
+          vpc_name = "vpc-${var.user-name}"
+          tags = {
+            Owner       = var.user-name
+            Environment = "LigaAC-labs"
+            Account     = "Workload3"
+          }
+        }
+        ```
+
+    - **Add the VPC module block**:
+
+        ```hcl
+        module "vpc" {
+          source  = "terraform-aws-modules/vpc/aws"
+          version = "5.8.1"
+        
+          name            = local.vpc_name
+          cidr            = "10.0.0.0/16"
+          azs             = data.aws_availability_zones.available.names
+          private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+          public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+        
+          enable_nat_gateway = true
+          single_nat_gateway = true
+          create_vpc         = true
+          create_igw         = true
+        
+          tags = local.tags
+        }
+        ```
 
 4. **Run Terraform Commands**:
 
